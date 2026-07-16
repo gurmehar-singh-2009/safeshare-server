@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>SafeShare — Stay Connected. Stay Safe.</title>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            #root {
+                position: relative;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            :root {
+                --bg: #050507;
+                --glass: rgba(255, 255, 255, 0.1);
+                --border: rgba(255, 255, 255, 0.18);
+                --text: #f5f5f7;
+                --muted: rgba(255, 255, 255, 0.65);
+                --blue: #3b82f6;
+                --green: #34d399;
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                background:
+                    radial-gradient(
+                        circle at top,
+                        rgba(59, 130, 246, 0.25),
+                        transparent 35%
+                    ),
+                    radial-gradient(
+                        circle at bottom right,
+                        rgba(52, 211, 153, 0.15),
+                        transparent 30%
+                    ),
+                    var(--bg);
+
+                color: var(--text);
+
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                    "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+
+                overflow-x: hidden;
+            }
+
+            /* NAV */
+
+            nav {
+                position: fixed;
+                top: 25px;
+                left: 50%;
+                transform: translateX(-50%);
+
+                width: min(90%, 1100px);
+
+                padding: 18px 28px;
+
+                border-radius: 50px;
+
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                z-index: 10;
+                background-color: hotpink !important;
+            }
+
+            .logo {
+                font-size: 22px;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+            }
+
+            button {
+                border: none;
+
+                padding: 14px 28px;
+
+                border-radius: 999px;
+
+                font-size: 15px;
+
+                cursor: pointer;
+
+                font-weight: 600;
+            }
+
+            .primary {
+                background: white;
+                color: black;
+            }
+
+            /* HERO */
+
+            .hero {
+                min-height: 100vh;
+
+                display: flex;
+
+                flex-direction: column;
+
+                align-items: center;
+
+                text-align: center;
+
+                padding: 180px 25px 100px;
+            }
+
+            h1 {
+                font-size: clamp(55px, 8vw, 110px);
+
+                line-height: 0.92;
+
+                letter-spacing: -5px;
+
+                animation: fadeUp 1s ease;
+
+                background: linear-gradient(
+                    180deg,
+                    #ffffff 40%,
+                    rgba(255, 255, 255, 0.6) 100%
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .hero p {
+                max-width: 650px;
+
+                margin-top: 35px;
+
+                font-size: 22px;
+
+                line-height: 1.5;
+
+                color: var(--muted);
+            }
+
+            .actions {
+                margin-top: 40px;
+
+                display: flex;
+
+                gap: 15px;
+            }
+
+            .secondary {
+                background: var(--glass);
+
+                color: white;
+
+                border: 1px solid var(--border);
+
+                backdrop-filter: blur(20px);
+            }
+
+            /* PHONE */
+
+            .phone {
+                margin-top: 90px;
+
+                width: 330px;
+
+                height: 650px;
+
+                border-radius: 55px;
+
+                padding: 12px;
+
+                background: #000;
+
+                border: 2px solid rgba(255, 255, 255, 0.15);
+
+                box-shadow: 0 60px 150px rgba(0, 0, 0, 0.7);
+
+                animation: float 5s infinite ease-in-out;
+            }
+
+            /*
+             * This is its own LiquidGlass root (see script at the bottom).
+             * Glass elements must be *direct children* of the root they're
+             * initialized against, so the two `.card.glass` panels below
+             * live directly inside `#phone-screen` rather than being
+             * buried under `.hero`. The root's own CSS background isn't
+             * visible to the shader (it only samples the root's captured
+             * children), so the gradient moved into a `.screen-bg` sibling.
+             */
+            .screen {
+                position: relative;
+                overflow: hidden;
+
+                height: 100%;
+
+                border-radius: 45px;
+
+                padding: 30px;
+            }
+
+            .screen-bg {
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+
+                background: linear-gradient(
+                    160deg,
+                    rgba(59, 130, 246, 0.45),
+                    rgba(0, 0, 0, 0.9)
+                );
+            }
+
+            .profile {
+                position: relative;
+                z-index: 1;
+
+                display: flex;
+
+                gap: 15px;
+
+                align-items: center;
+            }
+
+            .avatar {
+                width: 55px;
+                height: 55px;
+
+                border-radius: 50%;
+
+                background: linear-gradient(135deg, #60a5fa, #34d399);
+            }
+
+            .card {
+                position: relative;
+                z-index: 1;
+
+                margin-top: 50px;
+
+                padding: 25px;
+
+                border-radius: 30px;
+            }
+
+            /* FEATURES */
+
+            section {
+                max-width: 1100px;
+
+                margin: auto;
+
+                padding: 100px 25px;
+            }
+
+            .title {
+                font-size: 60px;
+
+                letter-spacing: -3px;
+            }
+
+            /*
+             * Also its own LiquidGlass root, for the same reason as
+             * `#phone-screen`: the four `.feature.glass` cards need to be
+             * direct children of whatever root renders them.
+             */
+            .grid {
+                position: relative;
+
+                margin-top: 50px;
+
+                display: grid;
+
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+
+                gap: 25px;
+            }
+
+            .grid-bg {
+                position: absolute;
+                inset: -40px;
+                z-index: 0;
+                border-radius: 40px;
+
+                background:
+                    radial-gradient(
+                        circle at 15% 20%,
+                        rgba(59, 130, 246, 0.35),
+                        transparent 55%
+                    ),
+                    radial-gradient(
+                        circle at 85% 80%,
+                        rgba(52, 211, 153, 0.3),
+                        transparent 55%
+                    ),
+                    rgba(255, 255, 255, 0.02);
+            }
+
+            .feature {
+                position: relative;
+                z-index: 1;
+
+                padding: 35px;
+
+                border-radius: 35px;
+
+                transition: 0.3s;
+            }
+
+            .feature:hover {
+                transform: translateY(-10px);
+            }
+
+            .icon {
+                font-size: 35px;
+            }
+
+            .feature h3 {
+                margin-top: 25px;
+
+                font-size: 25px;
+            }
+
+            .feature p {
+                margin-top: 15px;
+
+                color: var(--muted);
+
+                line-height: 1.6;
+            }
+
+            .cta {
+                text-align: center;
+            }
+
+            .cta h2 {
+                font-size: clamp(45px, 6vw, 80px);
+
+                letter-spacing: -4px;
+            }
+
+            /* ANIMATIONS */
+
+            @keyframes float {
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+
+                50% {
+                    transform: translateY(-20px);
+                }
+            }
+
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(40px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+
+            @media (max-width: 600px) {
+                h1 {
+                    letter-spacing: -2px;
+                }
+
+                .hero p {
+                    font-size: 18px;
+                }
+
+                .actions {
+                    flex-direction: column;
+                }
+
+                .phone {
+                    width: 290px;
+                    height: 580px;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="root">
+            <nav class="glass">
+                <div class="logo">SafeShare</div>
+
+                <button class="primary">Download</button>
+            </nav>
+
+            <div class="hero">
+                <h1>
+                    Everyone you love.<br />
+                    Protected.
+                </h1>
+
+                <p>
+                    SafeShare keeps your family connected with real-time
+                    location sharing, smart alerts, and safety features designed
+                    for peace of mind.
+                </p>
+
+                <div class="actions">
+                    <button class="primary">Get SafeShare</button>
+
+                    <button class="secondary">Learn More</button>
+                </div>
+
+                <div class="phone">
+                    <div class="screen" id="phone-screen">
+                        <div class="screen-bg"></div>
+
+                        <div class="profile">
+                            <div class="avatar"></div>
+
+                            <div>
+                                <h3>Family Circle</h3>
+
+                                <p style="color: #aaa">5 members online</p>
+                            </div>
+                        </div>
+
+                        <div class="card glass">
+                            <h3>📍 Emma arrived safely</h3>
+
+                            <p style="color: #aaa; margin-top: 10px">
+                                Home • 2 minutes ago
+                            </p>
+                        </div>
+
+                        <div class="card glass">
+                            <h3>🟢 Everyone is safe</h3>
+
+                            <p style="color: #aaa; margin-top: 10px">
+                                Last updated now
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section>
+                <h2 class="title">Safety that feels effortless.</h2>
+
+                <div class="grid" id="feature-grid">
+                    <div class="grid-bg"></div>
+
+                    <div class="feature glass">
+                        <div class="icon">📍</div>
+
+                        <h3>Live Location</h3>
+
+                        <p>
+                            See your circle in real time with accurate, private
+                            location sharing.
+                        </p>
+                    </div>
+
+                    <div class="feature glass">
+                        <div class="icon">🔔</div>
+
+                        <h3>Smart Alerts</h3>
+
+                        <p>
+                            Know when family arrives, leaves, or needs
+                            assistance.
+                        </p>
+                    </div>
+
+                    <div class="feature glass">
+                        <div class="icon">🛡️</div>
+
+                        <h3>Privacy First</h3>
+
+                        <p>Built around trust, security, and control.</p>
+                    </div>
+
+                    <div class="feature glass">
+                        <div class="icon">🚗</div>
+
+                        <h3>Safety Driving</h3>
+
+                        <p>Keep your loved ones safer wherever they go.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cta">
+                <h2>Peace of mind, wherever you go.</h2>
+
+                <br />
+
+                <button class="primary">Join SafeShare</button>
+            </section>
+        </div>
+
+        <script type="module">
+            import { LiquidGlass } from "https://cdn.jsdelivr.net/npm/@ybouane/liquidglass/dist/index.js";
+
+            // Mouse-tracking spotlight.
+            //
+            // Fix: the gradient position used to be computed from
+            // e.clientX/e.clientY (viewport-relative coordinates) but
+            // painted with the default `background-attachment: scroll`,
+            // which anchors a background to the *document's* coordinate
+            // system, not the viewport. So the moment you scrolled, the
+            // spotlight stayed glued to a fixed point on the page instead
+            // of following the cursor on screen. Adding `fixed` ties the
+            // gradient's positioning to the viewport, matching clientX/
+            // clientY exactly, so it now tracks the cursor regardless of
+            // scroll offset — no scroll listener needed.
+            document.addEventListener("mousemove", (e) => {
+                document.body.style.background = `
+                    radial-gradient(
+                        600px circle at ${e.clientX}px ${e.clientY}px,
+                        rgba(59, 130, 246, .12),
+                        transparent 40%
+                    ) fixed,
+                    var(--bg)
+                `;
+            });
+
+            // ─────────────────────────────────────────────────────────
+            // LiquidGlass setup
+            //
+            // Fix: previously every `.glass` element on the page (nav,
+            // the two phone cards, and the four feature cards) was
+            // collected with one querySelectorAll and hnded to a single
+            // `LiquidGlass.init({ root: #root })` call. But the library
+            // requires glass elements to be *direct children* of their
+            // root — the phone cards and feature cards are nested many
+            // levels deep (#root > .hero > .phone > .screen > .card, and
+            // #root > section > .grid > .feature), so they were rejected
+            // at init and rendered as plain, unstyled boxes. Only the nav
+            // (an actual direct child of #root) ever worked.
+            //
+            // Fix: `.screen` and `.grid` are now promoted to their own
+            // LiquidGlass roots (`#phone-screen`, `#feature-grid`), so
+            // their glass children qualify as direct children. Each root
+            // also gained a `-bg` sibling element, since a root's own CSS
+            // background isn't visible to its glass elements' refraction
+            // (only captured *children* are).
+            //
+            // Fix: `floating: true` was previously applied to every glass
+            // element, including the nav bar and content cards — meaning
+            // visitors could accidentally drag the nav or a feature card
+            // around the page. Removed; only intentionally-draggable
+            // elements should set `floating: true`.
+            //
+            // Fix: the library's default lighting (fresnel: 1, brightness:
+            // 0) is tuned for bright photographic backgrounds and renders
+            // noticeably light/white regardless of what's behind the
+            // panel — the same reason the library's own docs ship a
+            // separate "Dark Glass" example (brightness: -0.3) instead of
+            // just using the defaults. Our page is dark-themed with light
+            // text, so every panel here uses that same darker preset;
+            // without it the light text was unreadable against the
+            // washed-out glass.
+            // ─────────────────────────────────────────────────────────
+
+            const navEl = document.querySelector("nav.glass");
+            navEl.dataset.config = JSON.stringify({
+                // blurAmount: 0.3,
+                // cornerRadius: 50,
+                // brightness: -0.3,
+                // fresnel: 0.5,
+                // tintStrength: 0.1,
+                //
+                	brightness: -0.3,
+	blurAmount: 0.25,
+	cornerRadius: 50,
+            });
+
+            const cardEls = document.querySelectorAll(
+                "#phone-screen > .card.glass",
+            );
+            cardEls.forEach((el) => {
+                el.dataset.config = JSON.stringify({
+                    blurAmount: 0.3,
+                    cornerRadius: 30,
+                    brightness: -0.3,
+                    fresnel: 0.5,
+                    tintStrength: 0.1,
+                });
+            });
+
+            const featureEls = document.querySelectorAll(
+                "#feature-grid > .feature.glass",
+            );
+            featureEls.forEach((el) => {
+                el.dataset.config = JSON.stringify({
+                    blurAmount: 0.2,
+                    cornerRadius: 35,
+                    brightness: -0.3,
+                    fresnel: 0.5,
+                    tintStrength: 0.1,
+                });
+            });
+
+            // Fix: `#root`'s only glass element is `nav`, but its *other*
+            // children (`.hero`, the two `<section>`s) are non-glass
+            // wrappers that get rasterised via html-to-image to serve as
+            // nav's refracted backdrop. Those wrappers contain `.phone
+            // > .screen` and `.grid` — the exact elements about to become
+            // their own separate LiquidGlass roots below, each of which
+            // gets a live `<canvas>` injected into the DOM. A live WebGL
+            // canvas generally can't be read back reliably via
+            // `toDataURL()` (the draw buffer is typically cleared right
+            // after each frame), so if root's capture runs *after* those
+            // canvases exist, it tends to pull in a blank/grey frame
+            // instead of real content — which is exactly the flat grey,
+            // textureless nav panel from the last screenshot.
+            //
+            // The fix is ordering: fully await the root/nav instance
+            // FIRST, so its one-time static capture of `.hero`/`section`
+            // happens while they're still plain HTML/CSS — before
+            // `#phone-screen` and `#feature-grid` inject any canvases
+            // into that same subtree. Only then do we initialize the two
+            // nested roots.
+            const navInstance = await LiquidGlass.init({
+                root: document.querySelector("#root"),
+                glassElements: [navEl],
+            });
+
+            const [screenInstance, gridInstance] = await Promise.all([
+                LiquidGlass.init({
+                    root: document.querySelector("#phone-screen"),
+                    glassElements: cardEls,
+                }),
+                LiquidGlass.init({
+                    root: document.querySelector("#feature-grid"),
+                    glassElements: featureEls,
+                }),
+            ]);
+        </script>
+    </body>
+</html>

@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>SafeShare — Stay Connected. Stay Safe.</title>
+
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            :root {
+                --bg: #030305;
+                --text: #f5f5f7;
+                --muted: rgba(255, 255, 255, 0.45);
+                --border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                    "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+                overflow-x: hidden;
+            }
+
+            /* ───────────────────────────────────────────
+             * Page Layout & Structure
+             * ─────────────────────────────────────────── */
+            #page-root {
+                position: relative;
+                width: 100%;
+                min-height: 100vh;
+            }
+
+            /* Fullscreen WebGL canvas overlay - catches lights and renders glass panels on top of text */
+            #webgl-container {
+                position: fixed;
+                inset: 0;
+                z-index: 5; /* Layered above scrolling content, below interactive text */
+                pointer-events: none; /* Let mouse clicks pass through seamlessly */
+            }
+
+            .page-bg {
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                background:
+                    radial-gradient(
+                        circle at top,
+                        rgba(255, 255, 255, 0.05),
+                        transparent 45%
+                    ),
+                    radial-gradient(
+                        circle at bottom right,
+                        rgba(255, 255, 255, 0.02),
+                        transparent 40%
+                    ),
+                    var(--bg);
+            }
+
+            /* ───────────────────────────────────────────
+             * Glass Elements
+             * Note: We avoid backdrop-filter completely.
+             * ─────────────────────────────────────────── */
+            .real-glass {
+                position: relative;
+                background: transparent !important;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 
+                    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+                    0 20px 40px rgba(0, 0, 0, 0.4);
+            }
+
+            nav {
+                position: fixed;
+                top: 25px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: min(90%, 1100px);
+                padding: 18px 28px;
+                border-radius: 50px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                z-index: 10; /* At the absolute top layer for interactivity */
+            }
+
+            .logo {
+                font-size: 22px;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+                color: #ffffff;
+            }
+
+            button {
+                border: none;
+                padding: 14px 28px;
+                border-radius: 999px;
+                font-size: 15px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+            }
+
+            button:hover {
+                transform: scale(1.03);
+            }
+
+            .primary {
+                background: #ffffff;
+                color: #000000;
+            }
+
+            /* HERO & MAIN */
+            main {
+                position: relative;
+                z-index: 1; /* Scrollable layer below WebGL */
+            }
+
+            .hero {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                padding: 180px 25px 100px;
+            }
+
+            h1 {
+                font-size: clamp(55px, 8vw, 110px);
+                line-height: 0.92;
+                letter-spacing: -5px;
+                animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+                background: linear-gradient(
+                    180deg,
+                    #ffffff 40%,
+                    rgba(255, 255, 255, 0.45) 100%
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .hero p {
+                max-width: 650px;
+                margin-top: 35px;
+                font-size: 22px;
+                line-height: 1.5;
+                color: var(--muted);
+            }
+
+            .actions {
+                margin-top: 40px;
+                display: flex;
+                gap: 15px;
+                z-index: 2;
+            }
+
+            .secondary {
+                background: rgba(255, 255, 255, 0.05);
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            /* ───────────────────────────────────────────
+             * Phone Container
+             * ─────────────────────────────────────────── */
+            .phone {
+                margin-top: 90px;
+                width: 330px;
+                height: 650px;
+                border-radius: 55px;
+                padding: 12px;
+                background: #000000;
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 60px 150px rgba(0, 0, 0, 0.9);
+                animation: float 6s infinite ease-in-out;
+                position: relative;
+                z-index: 2;
+            }
+
+            #phone-root {
+                position: relative;
+                overflow: hidden;
+                height: 100%;
+                border-radius: 45px;
+                padding: 30px;
+            }
+
+            /* Restored to DOM for perfect content layering */
+            .screen-bg {
+                display: block;
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+                background: linear-gradient(
+                    160deg,
+                    rgba(255, 255, 255, 0.12) 0%,
+                    rgba(25, 25, 28, 0.98) 50%,
+                    rgba(5, 5, 5, 1) 100%
+                );
+            }
+
+            .profile {
+                position: relative;
+                z-index: 2;
+                display: flex;
+                gap: 15px;
+                align-items: center;
+            }
+
+            .avatar {
+                width: 55px;
+                height: 55px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #a1a1aa, #27272a);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+            }
+
+            .card {
+                position: relative;
+                z-index: 2;
+                margin-top: 50px;
+                padding: 25px;
+                border-radius: 30px;
+                text-align: left;
+            }
+
+            .card h3 {
+                font-size: 18px;
+                font-weight: 600;
+            }
+
+            /* FEATURES */
+            section {
+                max-width: 1100px;
+                margin: auto;
+                padding: 100px 25px;
+            }
+
+            .title {
+                font-size: 60px;
+                letter-spacing: -3px;
+                margin-bottom: 50px;
+                text-align: center;
+                background: linear-gradient(180deg, #ffffff 50%, rgba(255, 255, 255, 0.5));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            /* ───────────────────────────────────────────
+             * Feature Layout
+             * ─────────────────────────────────────────── */
+            #feature-root {
+                position: relative;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 25px;
+            }
+
+            .grid-bg {
+                display: block;
+                position: absolute;
+                inset: -40px;
+                z-index: 0;
+                border-radius: 40px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.03);
+            }
+
+            .feature {
+                position: relative;
+                z-index: 2;
+                padding: 35px;
+                border-radius: 35px;
+                transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+
+            .feature:hover {
+                transform: translateY(-8px);
+            }
+
+            .icon {
+                font-size: 35px;
+            }
+
+            .feature h3 {
+                margin-top: 25px;
+                font-size: 23px;
+                font-weight: 600;
+            }
+
+            .feature p {
+                margin-top: 15px;
+                color: var(--muted);
+                line-height: 1.6;
+                font-size: 15px;
+            }
+
+            .cta {
+                text-align: center;
+                position: relative;
+                z-index: 2;
+                padding: 120px 25px;
+            }
+
+            .cta h2 {
+                font-size: clamp(45px, 6vw, 80px);
+                letter-spacing: -4px;
+                background: linear-gradient(180deg, #ffffff 50%, rgba(255, 255, 255, 0.5));
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            /* ANIMATIONS */
+            @keyframes float {
+                0%, 100% {
+                    transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-20px);
+                }
+            }
+
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+
+            @media (max-width: 600px) {
+                h1 {
+                    letter-spacing: -2px;
+                }
+                .hero p {
+                    font-size: 18px;
+                }
+                .actions {
+                    flex-direction: column;
+                }
+                .phone {
+                    width: 290px;
+                    height: 580px;
+                }
+                nav {
+                    top: 15px;
+                    padding: 12px 20px;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="page-root">
+            <div class="page-bg"></div>
+
+            <!-- Fullscreen WebGL Canvas Layer -->
+            <div id="webgl-container"></div>
+
+            <nav id="glass-nav" class="real-glass">
+                <div class="logo">SafeShare</div>
+                <button class="primary">Download</button>
+            </nav>
+
+            <main>
+                <div class="hero">
+                    <h1>
+                        Everyone you love.<br />
+                        Protected.
+                    </h1>
+
+                    <p>
+                        SafeShare keeps your family connected with real-time
+                        location sharing, smart alerts, and safety features designed
+                        for peace of mind.
+                    </p>
+
+                    <div class="actions">
+                        <button class="primary">Get SafeShare</button>
+                        <button class="secondary">Learn More</button>
+                    </div>
+
+                    <div class="phone">
+                        <div id="phone-root">
+                            <div class="screen-bg"></div>
+
+                            <div class="profile">
+                                <div class="avatar"></div>
+
+                                <div>
+                                    <h3 style="font-size: 16px; font-weight: 600;">Family Circle</h3>
+                                    <p style="color: #88888b; font-size: 13px;">5 members online</p>
+                                </div>
+                            </div>
+
+                            <div id="glass-card-1" class="card real-glass">
+                                <h3>📍 Emma arrived safely</h3>
+                                <p style="color: #88888b; margin-top: 10px; font-size: 13px;">
+                                    Home • 2 minutes ago
+                                </p>
+                            </div>
+
+                            <div id="glass-card-2" class="card real-glass">
+                                <h3>🟢 Everyone is safe</h3>
+                                <p style="color: #88888b; margin-top: 10px; font-size: 13px;">
+                                    Last updated now
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <section>
+                    <h2 class="title">Safety that feels effortless.</h2>
+
+                    <div id="feature-root">
+                        <div class="grid-bg"></div>
+
+                        <div id="glass-feature-1" class="feature real-glass">
+                            <div class="icon">📍</div>
+                            <h3>Live Location</h3>
+                            <p>
+                                See your circle in real time with accurate, private
+                                location sharing.
+                            </p>
+                        </div>
+
+                        <div id="glass-feature-2" class="feature real-glass">
+                            <div class="icon">🔔</div>
+                            <h3>Smart Alerts</h3>
+                            <p>
+                                Know when family arrives, leaves, or needs
+                                assistance.
+                            </p>
+                        </div>
+
+                        <div id="glass-feature-3" class="feature real-glass">
+                            <div class="icon">🛡️</div>
+                            <h3>Privacy First</h3>
+                            <p>Built around trust, security, and control.</p>
+                        </div>
+
+                        <div id="glass-feature-4" class="feature real-glass">
+                            <div class="icon">🚗</div>
+                            <h3>Safety Driving</h3>
+                            <p>Keep your loved ones safer wherever they go.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="cta">
+                    <h2>Peace of mind, wherever you go.</h2>
+                    <br />
+                    <button class="primary">Join SafeShare</button>
+                </section>
+            </main>
+        </div>
+
+        <!-- Stable, high-performance Three.js Engine -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+        <script>
+            // Mouse Interaction Tracker
+            let mouseX = window.innerWidth / 2;
+            let mouseY = window.innerHeight / 2;
+
+            document.addEventListener("mousemove", (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+
+            // ─────────────────────────────────────────────────────────
+            // Three.js Glass Refraction Pipeline (Sleek Monochrome Edition)
+            // ─────────────────────────────────────────────────────────
+            class ThreeLiquidGlass {
+                constructor() {
+                    this.container = document.getElementById("webgl-container");
+                    this.scene = new THREE.Scene();
+
+                    // Orthographic camera maps 1:1 screen pixels directly to WebGL coordinates
+                    this.camera = new THREE.OrthographicCamera(
+                        0, window.innerWidth,
+                        window.innerHeight, 0,
+                        0.1, 2000
+                    );
+                    this.camera.position.z = 1000;
+
+                    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.container.appendChild(this.renderer.domElement);
+
+                    this.glassPanels = [];
+                    this.geometryCache = new Map();
+
+                    this.initLights();
+                    this.initGlassMaterial();
+
+                    window.addEventListener("resize", () => this.resize());
+                }
+
+                initLights() {
+                    // Soft general environment light
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
+                    this.scene.add(ambientLight);
+
+                    // Physical directional highlights (emphasizes beautiful glass edge reflections)
+                    this.dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+                    this.dirLight.position.set(300, window.innerHeight + 300, 600);
+                    this.scene.add(this.dirLight);
+
+                    // Sleek professional cool white spotlights
+                    this.whiteGlowLight1 = new THREE.PointLight(0xffffff, 4, 1200);
+                    this.whiteGlowLight1.position.set(window.innerWidth / 2, window.innerHeight - 100, 200);
+                    this.scene.add(this.whiteGlowLight1);
+
+                    this.slateGlowLight2 = new THREE.PointLight(0x8e9aa6, 3, 1000);
+                    this.slateGlowLight2.position.set(window.innerWidth - 150, 150, 200);
+                    this.scene.add(this.slateGlowLight2);
+
+                    // Smooth mouse follow light (creates active shine reflection)
+                    this.mouseLight = new THREE.PointLight(0xffffff, 3.5, 800);
+                    this.mouseLight.position.set(mouseX, window.innerHeight - mouseY, 250);
+                    this.scene.add(this.mouseLight);
+                }
+
+                initGlassMaterial() {
+                    // HEAVIER GLASS OPTIMIZATION: Maximum physical refraction depth
+                    this.glassMaterial = new THREE.MeshPhysicalMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.04,            // Keeps it looking crystal clear
+                        transmission: 0.98,       // Higher transmission for clean, premium distortion
+                        roughness: 0.08,          // Sleeker glass surface frost texture
+                        metalness: 0.05,
+                        ior: 1.65,                // Heightened Index of Refraction for intense physical refraction
+                        thickness: 35.0,          // Increased block thickness for heavy physical depth
+                        specularIntensity: 1.2,   // High-impact light reflections
+                        clearcoat: 1.0,           // Glossy coating layer
+                        clearcoatRoughness: 0.02, // Slick mirror finish coat
+                        depthWrite: false
+                    });
+                }
+
+                createRoundedRectShape(width, height, radius) {
+                    const shape = new THREE.Shape();
+                    const x = -width / 2;
+                    const y = -height / 2;
+                    shape.moveTo(x + radius, y);
+                    shape.lineTo(x + width - radius, y);
+                    shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+                    shape.lineTo(x + width, y + height - radius);
+                    shape.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                    shape.lineTo(x + radius, y + height);
+                    shape.quadraticCurveTo(x, y + height, x, y + height - radius);
+                    shape.lineTo(x, y + radius);
+                    shape.quadraticCurveTo(x, y, x + radius, y);
+                    return new THREE.ShapeGeometry(shape);
+                }
+
+                getRoundedGeometry(width, height, radius) {
+                    const key = `${Math.round(width)}x${Math.round(height)}r${radius}`;
+                    if (!this.geometryCache.has(key)) {
+                        this.geometryCache.set(key, this.createRoundedRectShape(width, height, radius));
+                    }
+                    return this.geometryCache.get(key);
+                }
+
+                registerElement(element, radius) {
+                    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), this.glassMaterial);
+                    mesh.position.set(-9999, -9999, 200);
+                    this.scene.add(mesh);
+
+                    this.glassPanels.push({ element, mesh, radius });
+                }
+
+                resize() {
+                    this.camera.left = 0;
+                    this.camera.right = window.innerWidth;
+                    this.camera.top = window.innerHeight;
+                    this.camera.bottom = 0;
+                    this.camera.updateProjectionMatrix();
+
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.geometryCache.clear();
+                }
+
+                update() {
+                    // Soft lerping position update for point light tracking
+                    const targetX = mouseX;
+                    const targetY = window.innerHeight - mouseY;
+                    this.mouseLight.position.x += (targetX - this.mouseLight.position.x) * 0.08;
+                    this.mouseLight.position.y += (targetY - this.mouseLight.position.y) * 0.08;
+
+                    // Project the real coordinates of HTML glass blocks to our WebGL mesh space
+                    this.glassPanels.forEach(panel => {
+                        const rect = panel.element.getBoundingClientRect();
+
+                        // Culled if off-viewport
+                        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                            panel.mesh.position.set(-9999, -9999, 200);
+                            return;
+                        }
+
+                        const x = rect.left + rect.width / 2;
+                        const y = window.innerHeight - (rect.top + rect.height / 2);
+
+                        panel.mesh.position.set(x, y, 200);
+                        panel.mesh.geometry = this.getRoundedGeometry(rect.width, rect.height, panel.radius);
+                    });
+
+                    this.renderer.render(this.scene, this.camera);
+                }
+            }
+
+            // ─────────────────────────────────────────────────────────
+            // Bootstrap Engine
+            // ─────────────────────────────────────────────────────────
+            const glassEngine = new ThreeLiquidGlass();
+
+            // Track elements
+            glassEngine.registerElement(document.getElementById("glass-nav"), 50);
+            glassEngine.registerElement(document.getElementById("glass-card-1"), 30);
+            glassEngine.registerElement(document.getElementById("glass-card-2"), 30);
+            glassEngine.registerElement(document.getElementById("glass-feature-1"), 35);
+            glassEngine.registerElement(document.getElementById("glass-feature-2"), 35);
+            glassEngine.registerElement(document.getElementById("glass-feature-3"), 35);
+            glassEngine.registerElement(document.getElementById("glass-feature-4"), 35);
+
+            function tick() {
+                glassEngine.update();
+                requestAnimationFrame(tick);
+            }
+            tick();
+        </script>
+    </body>
+</html>
