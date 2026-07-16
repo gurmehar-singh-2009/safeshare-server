@@ -22,8 +22,8 @@ async fn main() {
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let addr_str = format!("0.0.0.0:{}", port);
     let addr: SocketAddr = addr_str.parse().expect("Invalid binding address");
-    let serve_dir = ServeDir::new("frontend/dist")
-        .not_found_service(ServeFile::new(format!("{}/index.html", "frontend/dist")));
+    let serve_dir = ServeDir::new("frontend/site")
+        .not_found_service(ServeFile::new(format!("{}/index.html", "frontend/site")));
 
     let app = Router::new()
         // .route("/", get(home_handler))
